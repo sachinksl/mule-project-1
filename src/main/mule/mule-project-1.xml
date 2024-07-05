@@ -1,14 +1,185 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="56cd1c9d-d152-4d79-9b52-3c2761066050" >
 		<http:listener-connection host="0.0.0.0" port="8081" />
 	</http:listener-config>
-	<flow name="mule-project-1Flow" doc:id="627329bf-3e9b-455f-a5c9-13f20c5934f5" >
-		<http:listener doc:name="Listener" doc:id="aa96357f-f0ea-46df-ab89-83ca11b23279" config-ref="HTTP_Listener_config" path="/test"/>
-		<logger level="INFO" doc:name="Logger" doc:id="c25c615a-8cff-43c9-896c-00387b2db514" />
+	<file:config name="File_Config" doc:name="File Config" doc:id="34052ada-7dd9-40d8-892c-a5f0e6cd5c44" >
+		<file:connection workingDir="C:\Users\sackansa\Desktop\sachin\Mule Projects\Github\FilesIn" />
+	</file:config>
+	<file:config name="File_Config1" doc:name="File Config" doc:id="a7e831ec-7d01-4867-b9c9-4b3dd0e47384" >
+		<file:connection />
+	</file:config>
+	<flow name="csv-2-json" doc:id="627329bf-3e9b-455f-a5c9-13f20c5934f5" >
+		<http:listener doc:name="Listener" doc:id="aa96357f-f0ea-46df-ab89-83ca11b23279" config-ref="HTTP_Listener_config" path="/csv2json"/>
+		<file:read doc:name="Read" doc:id="25c3c432-4997-4c32-8d55-cc56a3aba04e" config-ref="File_Config" path="C:\Users\sackansa\Desktop\sachin\Mule Projects\Github\FilesIn\sample2.csv" outputMimeType='application/csv; separator="|,"'/>
+		<ee:transform doc:name="Transform Message" doc:id="e254a20f-f6e7-441b-be2c-4acae9cbcb40" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+// input payload application/csv separator = '|', header = true
+
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="c25c615a-8cff-43c9-896c-00387b2db514" message="#[payload]"/>
+	</flow>
+	<flow name="json-2-csv" doc:id="d1c86cc1-bda6-4ad8-89e3-ae04e88c2c52" >
+		<http:listener doc:name="Listener" doc:id="47c8c8bf-7065-4d10-a4e8-f6668a2fa624" config-ref="HTTP_Listener_config" path="/json2csv" />
+		<ee:transform doc:name="Transform Message" doc:id="8ae0911e-c387-4e06-a619-a8052d1d5081" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="6ff75c2e-4ea9-4ddf-99e0-85b0f0add6e1" message="#[payload]" />
+	</flow>
+	<flow name="encode-payload" doc:id="3469524c-a96b-470f-b1a7-cf4158b1f141" >
+		<http:listener doc:name="Listener" doc:id="3909f1d9-fbeb-4f42-9da8-63adf8d73bb5" config-ref="HTTP_Listener_config" path="/encodepayload" />
+		<ee:transform doc:name="Transform Message" doc:id="81dd2cca-62da-4f1b-8552-c390188bda69" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[import * from dw::core::Binaries
+output text/plain
+---
+toBase64((write(payload.resultSet1, 'application/csv', {'header':true, 'separator' : '|'}) as String) as Binary)
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="ec82ac9a-c269-408e-bba1-62a37471ac77" message="#[payload]" />
+	</flow>
+	<flow name="decode-payload" doc:id="533d38cd-5774-4677-94a6-bb0751f24951" >
+		<http:listener doc:name="Listener" doc:id="d96c6204-7f92-45dd-9440-248a11422acd" config-ref="HTTP_Listener_config" path="/decodepayload" />
+		<ee:transform doc:name="Transform Message" doc:id="102aed80-a0f9-4b34-a729-ea715baa746e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[import * from dw::core::Binaries
+output text/plain
+---
+fromBase64(payload) as Binary]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="d437370f-3caa-4c1f-9020-9e7cf3b97041" message="#[payload]" />
+	</flow>
+	<flow name="csv-2-json2" doc:id="9d1b02a5-69df-4aa7-babc-e299f879e702" >
+		<http:listener doc:name="Listener" doc:id="d90a0f7e-ca76-40f5-9ab9-67d3c4122243" config-ref="HTTP_Listener_config" path="/csv2json2" />
+		<ee:transform doc:name="Transform Message" doc:id="06ad4b49-d056-47d3-a6f5-ffe09aeeda86" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+input payload application/csv separator = '|', header = true
+output application/json
+---
+readUrl('classpath://sample2.csv', 'application/csv', {'header':true, 'separator' : ','})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="d66902b9-ff22-4473-8c37-e7d8d8fd6686" message="#[payload]" />
+	</flow>
+	<flow name="string-2-Number" doc:id="ca84f3cb-5012-4d3e-b55c-3ae6e2b3e771" >
+		<http:listener doc:name="Listener" doc:id="0e08aa51-31f0-46a8-a659-5172e66bea44" config-ref="HTTP_Listener_config" path="/stringnumber" />
+		<ee:transform doc:name="Transform Message" doc:id="65f6a3da-2475-4c0d-8f81-901a591c7e38" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Dates
+output application/json
+---
+
+id: payload.roundup as Number as String {format: "0.00"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="5be94e1d-358c-4b0e-8958-516973953e34" message="#[payload]" />
+	</flow>
+	<flow name="date-conversion" doc:id="99e935a4-91ff-4345-a3c2-42d5108f56ab" >
+		<http:listener doc:name="Listener" doc:id="6291b74f-a69b-4550-8bd0-d2ebb098bc32" config-ref="HTTP_Listener_config" path="/date1" />
+		<ee:transform doc:name="Transform Message" doc:id="35a4fde9-7b87-49de-8777-bddadc4dc0c6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Dates
+output application/json
+---
+a: payload.date as Date {format: "dd/MM/yyyy"} + |P3M|]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="b40248d5-5ebe-4965-a46c-4f348f740489" message="#[payload]" />
+	</flow>
+	<flow name="order-number1" doc:id="bf3281d9-9dda-42b6-8e44-67364f6461e7" >
+		<http:listener doc:name="Listener" doc:id="74586738-9206-4794-b051-a24747268627" config-ref="HTTP_Listener_config" path="/ordernumber1" />
+		<ee:transform doc:name="Transform Message" doc:id="2a3f8f29-795a-437e-9fe0-c2439eafe986" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+((payload.Filename map $ filter ((item, index) -> item matches /^DocumentList_\d{8}_\d{2}\.csv.pgp$/)) map {
+    fileName: $,
+    timestamp: ($ scan /\d{8}/)[0][0] as String {format: "yyyyMMdd"},
+    orderNumber: substring((($ splitBy "_")[2]),0,2)
+}
+orderBy $.orderNumber ) default []]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="6c1f4241-0efa-46a2-9820-7f1295adca06" message="#[payload]" />
+	</flow>
+	<flow name="remove-newline-spaces" doc:id="cf749108-4d19-438a-937d-85922caa013b" >
+		<http:listener doc:name="Listener" doc:id="a9d32553-3c30-4ef8-8a2d-b5327435e460" config-ref="HTTP_Listener_config" path="/removenl" />
+		<ee:transform doc:name="Transform Message" doc:id="af51789b-3aba-4d62-97a2-608b44b35b7e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+payload[0] mapObject (
+if($$ ~= "value")
+    ($$) : read($,"application/json")
+    else 
+        ($$) : $
+)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="0cf3745e-f473-4e9c-9a36-d51240e08346" message="#[payload]" />
+	</flow>
+	<flow name="transform1" doc:id="2c998f8f-97bc-464f-b1f2-d078e5e741f5" >
+		<http:listener doc:name="Listener" doc:id="84b9f971-6d98-4364-b22c-4f7beaf7edb8" config-ref="HTTP_Listener_config" path="/transform1" />
+		<ee:transform doc:name="Transform Message" doc:id="9a54807b-614a-47b5-bcd6-5c4ce11db86e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json  
+---
+
+{
+totalRecords: sum (payload.fields map ((field, index) -> sizeOf(field.picklistValues))),
+totalPages: 1,  // No logic available
+page: 1,  // No logic available
+records: 
+payload.fields.picklistValues flatMap ((item) -> item map ((subItem) -> {
+  description: subItem.value,
+  messageType: subItem.label
+ 
+}))
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="78a4e364-473b-40c2-ba78-e255c692c088" message="#[payload]" />
+	</flow>
+	<flow name="checkEmail" doc:id="2d31f921-8ef5-4343-b8d8-26b9804a48d3" >
+		<http:listener doc:name="Listener" doc:id="7f5111ec-e72b-4fac-ae48-6b5506cdff93" config-ref="HTTP_Listener_config" path="/checkemail" />
+		<ee:transform doc:name="Transform Message" doc:id="fdfc9a8c-f331-4462-88ed-73facc70989b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var regexEmail = /^[^.][a-zA-Z0-9.!#$%&’*+\/=?^_`{|}~-]+@[a-zA-Z0-9-](?!.*?\.\.)[^_ ; ,<>\/\\]+(?:\.[a-zA-Z0-9-]+)[^.]*$/
+---
+{
+ Email: if ( not  (payload.Email matches regexEmail))"invalid email" else "Valid Email"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="8ddf4d6d-7f51-4437-b3df-4fad191d9a8e" message="#[payload]" />
 	</flow>
 </mule>
